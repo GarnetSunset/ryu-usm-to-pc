@@ -1,5 +1,5 @@
-import subprocess
-from os import makedirs, listdir, remove
+import os
+from os import makedirs, listdir, remove, system
 from os.path import isfile, join, exists, splitext
 
 import ffmpeg
@@ -12,30 +12,37 @@ for filename in listdir(path):
     fullPath = join(path, filename)
     if isfile(fullPath):
         pathname, extension = splitext(fullPath)
-        if not exists(pathname):
-            makedirs(pathname)
+        extractPath = f'{pathname}-extract'
+        if not exists(extractPath):
+            makedirs(extractPath)
         usmObj = USM(fullPath)
         usmObj.demux()
-        usmObj.extract(pathname)
-        if not exists(f'{pathname}/workspace/mov_conv_work/00000.avi'):
-            stream = ffmpeg.input(f'{pathname}/workspace/mov_conv_work/00000.ivf')
-            stream = ffmpeg.output(stream, f'{pathname}/workspace/mov_conv_work/00000.avi', **{'qscale:v': 0})
+        usmObj.extract(extractPath)
+        if not exists(f'{extractPath}/workspace/mov_conv_work/00000.avi'):
+            stream = ffmpeg.input(f'{extractPath}/workspace/mov_conv_work/00000.ivf', **{"hwaccel": "nvdec"})
+            stream = ffmpeg.output(stream, f'{extractPath}/workspace/mov_conv_work/00000.avi', **{'qscale:v': 1})
             ffmpeg.run(stream)
-
-            audio0 = ffmpeg.input(f'{pathname}/workspace/mov_conv_work/audio0.hca')
-            audio0 = ffmpeg.output(audio0, f'{pathname}/workspace/mov_conv_work/audio0.wav', **{'qscale:v': 0})
-            ffmpeg.run(audio0)
-
-            audio1 = ffmpeg.input(f'{pathname}/workspace/mov_conv_work/audio1.hca')
-            audio1 = ffmpeg.output(audio1, f'{pathname}/workspace/mov_conv_work/audio1.wav', **{'qscale:v': 0})
-            ffmpeg.run(audio1)
-        if isfile(f'{pathname}/workspace/mov_conv_work/00000.avi') and isfile(
-                f'{pathname}/workspace/mov_conv_work/00000.ivf'):
-            remove(f'{pathname}/workspace/mov_conv_work/00000.ivf')
-            remove(f'{pathname}/workspace/mov_conv_work/audio0.hca')
-            remove(f'{pathname}/workspace/mov_conv_work/audio1.hca')
-        createUsm = subprocess.run(
-            [sofdec2enc, '-gop_closed=on', '-gop_i=1', '-gop_p=4', '-gop_b=2',
-             f'-video00="{pathname}\workspace\mov_conv_work\00000.avi"', f'-output="{fullPath}"', '-bitrate=20000000',
-             f'-audio00="{pathname}\workspace\mov_conv_work\audio0.wav"',
-             f'-audio01="{pathname}/workspace/mov_conv_work/audio1.wav"'])
+            if exists(f'{extractPath}/workspace/mov_conv_work/audio0.hca'):
+                os.system(
+                    f'ffmpeg -i {extractPath}/workspace/mov_conv_work/audio0.hca -filter_complex '
+                    f'"channelmap=map=FL-FL|FR-FR|FC-BL|LFE-BR|BL-FC|BR-LFE:channel_layout=5.1" '
+                    f'{extractPath}/workspace/mov_conv_work/audio0.wav')
+            if exists(f'{extractPath}/workspace/mov_conv_work/audio1.hca'):
+                os.system(
+                    f'ffmpeg -i {extractPath}/workspace/mov_conv_work/audio1.hca -filter_complex '
+                    f'"channelmap=map=FL-FL|FR-FR|FC-BL|LFE-BR|BL-FC|BR-LFE:channel_layout=5.1" '
+                    f'{extractPath}/workspace/mov_conv_work/audio1.wav')
+        if isfile(f'{extractPath}/workspace/mov_conv_work/00000.avi') and isfile(
+                f'{extractPath}/workspace/mov_conv_work/00000.ivf'):
+            remove(f'{extractPath}/workspace/mov_conv_work/00000.ivf')
+            if exists(f'{extractPath}/workspace/mov_conv_work/audio0.hca'):
+                remove(f'{extractPath}/workspace/mov_conv_work/audio0.hca')
+            if exists(f'{extractPath}/workspace/mov_conv_work/audio1.hca'):
+                remove(f'{extractPath}/workspace/mov_conv_work/audio1.hca')
+        if isfile(f'{extractPath}/workspace/mov_conv_work/00000.avi'):
+            if isfile(f'{extractPath}/workspace/mov_conv_work/audio0.wav'):
+                createUsm = system(
+                    f'{sofdec2enc} -br_range=0,60000000 -video00=\"{extractPath}/workspace/mov_conv_work/00000.avi\" -output=\"{pathname}\" -audio00=\"{extractPath}/workspace/mov_conv_work/audio0.wav\" -audio01=\"{extractPath}/workspace/mov_conv_work/audio1.wav\"')
+            else:
+                createUsm = system(
+                    f'{sofdec2enc} -br_range=0,60000000 -video00=\"{extractPath}/workspace/mov_conv_work/00000.avi\" f-output=\"{pathname}')
