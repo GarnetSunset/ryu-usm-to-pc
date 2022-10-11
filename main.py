@@ -48,4 +48,4 @@ for filename in listdir(path):
                     f'{sofdec2enc} -br_range=0,60000000 -video00=\"{extractPath}/workspace/mov_conv_work/00000.avi\" -output=\"{pathname}\" -audio00=\"{extractPath}/workspace/mov_conv_work/audio0.wav\" -audio01=\"{extractPath}/workspace/mov_conv_work/audio1.wav\"')
             else:
                 createUsm = system(
-                    f'{sofdec2enc} -br_range=0,60000000 -video00=\"{extractPath}/workspace/mov_conv_work/00000.avi\" f-output=\"{pathname}')
+                    f'{sofdec2enc} -br_range=0,60000000 -video00=\"{extractPath}/workspace/mov_conv_work/00000.avi\" -output=\"{pathname}')
