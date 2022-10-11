@@ -9,7 +9,7 @@ sofdec2enc = "R:/Documents/Programming/Tools/Sofdec2/sofdec2enc.exe"
 
 for filename in listdir(path):
     fullPath = join(path, filename)
-    if isfile(fullPath):
+    if isfile(fullPath) and ".bak" in fullPath:
         pathname, extension = splitext(fullPath)
         extractPath = f'{pathname}-extract'
         if not exists(extractPath):
